@@ -1,0 +1,59 @@
+﻿@page "/Reviews"
+@using Client.Models
+@using Client.Data
+@using System.Threading
+@inject ITest tst
+<h3><p style="font-family:'Courier New'">Indsend feedback til chefen </p></h3>
+
+
+
+
+
+
+
+
+
+<EditForm Model="@rew" OnValidSubmit="@AddReview">
+        <label for="fname"><p style="font-family:'Courier New'">*your name:</p></label><br>
+        <InputTextArea rows="1" name="pin" maxlength="100" @bind-Value="x"/>
+        <p></p>
+        <label for="fname"><p style="font-family:'Courier New'">*your opinion:</p></label><br>
+        <InputTextArea rows="10" cols="30" @bind-Value="y"/>
+        <p></p>
+        <p></p>
+</EditForm>
+<a target="_blank" class="font-weight-bold" href="https://localhost:5004/">
+        <button class="btn btn-primary" @onclick="AddReview"><p style="font-family:'Courier New'">send feedback</p></button>
+</a>
+@if (W == 0) {
+}
+else if (W == 1) {
+    <p style="font-family:'Courier New'">
+        🥓🥓 tak for feedback...vidersendes til homepage 🥓
+    </p>
+}
+
+@code {
+        private static string uri = "http://localhost:8080/menu/";
+        private string x, y;
+        static ReviewObject rew = new ReviewObject();
+    private int W = 0;
+    
+    public async Task AddReview()
+    {
+
+
+        Random number = new Random();
+        rew.id = number.Next(10000) + 1;
+        rew.name = x;
+        rew.review = y;
+        
+        Console.WriteLine(x+" har skrevet review: #"+rew.id);
+
+        W = +1;
+        Thread.Sleep(100);
+        W = +1;
+
+        await tst.SendReviewAsync(rew);
+    }
+}

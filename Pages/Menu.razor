@@ -1,0 +1,222 @@
+﻿@page "/Menu"
+@using Client.Data
+@using Client.Models
+@using System.Text.Json
+@using System.Collections.ObjectModel
+@using System.Net
+@using System.Net.Mail
+@inject ITest tst
+@if (men == null) {
+    <p>
+        <em><img src="boog.gif" alt="Italian Trulli"></em>
+    </p>
+}
+else if (!men.Any()) {
+    <p>
+        <em><img src="boog.gif" alt="Italian Trulli"></em>
+    </p>
+}
+else
+{
+    <h3 style="font-family:'Courier New'">Menu</h3>
+    <table class="table">
+        <thead>
+        <tr><th><p style="font-family:'Courier New'">*</p></th>
+            <th><p style="font-family:'Courier New'">items</p></th>
+            <th><p style="font-family:'Courier New'">price</p></th>
+            <th><p style="font-family:'Courier New'"><h7 style="color:tomato;">
+                    🗑️
+                </h7></p>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in men)
+        {
+            <tr>
+                <td>
+                    <button class="btn" @onclick="() => orderedmenuitems.Add(item)">
+                        <p style="font-family:'Courier New'">  @item.number</p>
+                    </button>
+                </td>
+                <td>
+                    <button class="btn" @onclick="() => orderedmenuitems.Add(item)">
+                        <p style="font-family:'Courier New'">  @item.food</p>
+                    </button>
+                </td>
+                <td>
+                    <button class="btn" @onclick="() => orderedmenuitems.Add(item)">
+                        <p style="font-family:'Courier New'">   @item.price DKK</p>
+                    </button>
+                </td>
+                <td>
+                    <button class="btn" @onclick="() => orderedmenuitems.Remove(item)">
+                        <h7 style="color:tomato;">
+                            <p style="font-family:'Courier New'">  -remove-  </p>
+                        </h7>
+                    </button>
+                </td>
+                <!--<td>/td>-->
+                <td>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (W == 0)
+    {
+        <br/>
+        <h4>
+            <p style="font-family:'Courier New'"> Bekræft bestilling </p></h4>
+        <br>
+        <p style="font-family:'Courier New'">(bestilling går ikke igennem med ugyldig information) </p>
+        <EditForm Model="@o" OnValidSubmit="@AddOrder">
+            <label for="fname">
+                <p style="font-family:'Courier New'">*KRAV* Adresse:</p></label><br>
+            <InputTextArea rows="1" name="pin" maxlength="100" @bind-Value="x"/>
+            <p></p>
+            <label for="fname">
+                <p style="font-family:'Courier New'">*KRAV* Email:</p></label><br>
+            <InputTextArea rows="1" @bind-Value="y"/>
+            <p></p>
+            <p></p>
+            <label for="fname">
+                <p style="font-family:'Courier New'">*KRAV* phone number:</p></label><br>
+            <InputTextArea rows="1" name="pin" maxlength="8" @bind-Value="phone"/>
+            <p></p>
+        </EditForm>
+        <br>
+        <div>
+            <label style="font-family:'Courier New'">items in order: @orderedmenuitems.Count <br/>
+                total price: @getOrderTotal() DKK
+                <br/>
+                <br/>
+            </label>
+        </div>
+        
+        //<button class="btn btn-primary" @onclick="SendOrder">send to server</button>
+        <button class="btn btn-primary" @onclick="AddOrder">
+            <p style="font-family:'Courier New'">Ja tak</p></button>
+                                                           <p></p>
+        
+    }
+    else if (W == 1)
+    {
+       <p style="font-family:'Courier New'">
+                        🥓🥓🥓🥓 <br/>
+                        ugyldig information, genindlæs siden og prøv igen <br/>
+                        🥓🥓🥓🥓
+                    </p>
+    }
+    else
+    {
+        <p style="font-family:'Courier New'">
+            🥓🥓🥓🥓 <br/>
+            tak for din bestilling, forvented ventetid... 35 minutter <br/>
+            🥓🥓🥓🥓
+        </p>
+    }
+}
+
+@code {
+    //adressen for rest serveren som holder vores menu
+    private static string listuri = "http://localhost:8080/menu/1";
+    private string x, y, phone;
+    static IList<MenuObject> men = new List<MenuObject>();
+    static IList<MenuObject> orderedmenuitems = new List<MenuObject>();
+    OrderObject o = new OrderObject();
+    private int W = 0;
+
+    //OnInitializedAsync gør så metoden automatisk bliver kaldt, når siden er laoded
+    //virker
+    protected override async Task OnInitializedAsync()
+    {
+        orderedmenuitems.Clear();
+    //Console.WriteLine(tst.GetListAsync("1"));
+        for (int x = 1; x <= 9; x++)
+        {
+            if (men.Count == 0)
+            {
+                men.Add(await tst.GetMenuAsync(x));
+            }
+            else if (men.Count > 0)
+            {
+                men.Clear();
+                men.Add(await tst.GetMenuAsync(1));
+                men.Add(await tst.GetMenuAsync(2));
+                men.Add(await tst.GetMenuAsync(3));
+                men.Add(await tst.GetMenuAsync(4));
+                men.Add(await tst.GetMenuAsync(6));
+                men.Add(await tst.GetMenuAsync(7));
+                men.Add(await tst.GetMenuAsync(8));
+                men.Add(await tst.GetMenuAsync(9));
+                men.Add(await tst.GetMenuAsync(10));
+            }
+        }
+        HttpClient client = new HttpClient();
+        Task<string> stringAsync = client.GetStringAsync(listuri);
+        string message = await stringAsync;
+        MenuObject result = JsonSerializer.Deserialize<MenuObject>(message);
+    }
+    
+    public static int orderNumber()
+    {
+        Random number = new Random();
+
+        return number.Next(1000000) + 1;
+    }
+
+    public async Task AddOrder()
+    {
+        for (int x = 0; x < orderedmenuitems.Count; x++)
+        {
+            o.price += orderedmenuitems[x].price;
+            o.items += orderedmenuitems[x].food+" + ";
+        }
+        o.adr = x;
+        o.email = y;
+        o.phone = phone;
+        o.ordernumber = orderNumber();
+        Console.WriteLine("mad tilføjet til bestilling: "+o.items);
+        Console.WriteLine("total pris af bestilling: "+o.price);
+        Console.WriteLine("bestillingsNummer: "+o.ordernumber);
+        Console.WriteLine("Til adresse: "+o.adr);
+        if (o.adr == null || o.email == null || o.phone == null)
+        {
+            W += 1;
+        }
+        else if (o.adr != null || o.email != null || o.phone != null)
+        {
+            W = 2;
+           await tst.SendOrderAsync(o); 
+        }
+        SendMail();
+    }
+
+    public string getOrderTotal()
+    {
+        int total = 0;
+        for (int x = 0; x < orderedmenuitems.Count; x++)
+        {
+            total += orderedmenuitems[x].price;
+        }
+        Console.WriteLine(total);
+        return total.ToString();
+    }
+    
+    //forsøger
+    public async Task SendMail()
+    {
+        SmtpClient client = new SmtpClient("smtp.gmail.com", 587)
+        {
+            Credentials = new NetworkCredential("foodsfastfood@gmail.com", "foods2fast"),
+            EnableSsl = true
+        };
+        client.Send("foodsfastfood@gmail.com", y, "Tak for at vælge vores fast food", "Tak for din bestilling. " +
+                                                                                      "Du har bestilt "+o.items+" til total pris af "+o.price+" DKK" +
+                                                                                      "MvH. Danmark takeaway!");
+        Console.WriteLine("Sent");
+        Console.ReadLine();
+    }
+}
+
